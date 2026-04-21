@@ -48,6 +48,7 @@
 
     @media (max-width: 480px) {
       th:nth-child(3), td:nth-child(3) { display: none; }
+      th:nth-child(4), td:nth-child(4) { display: none; }
     }
   </style>
 </head>
@@ -75,12 +76,13 @@
             <th>Name</th>
             <th>Streak</th>
             <th>Last 7 days</th>
+            <th>Total Days</th>
             <th>Today</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="5" class="loading">—</td></tr>
+          <tr><td colspan="6" class="loading">—</td></tr>
         </tbody>
       </table>
     </div>
@@ -136,7 +138,7 @@
   }
 
   async function load() {
-    document.getElementById('tbody').innerHTML = '<tr><td colspan="5" class="loading">Loading...</td></tr>'
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>'
     document.getElementById('stats-area').innerHTML = '<div class="loading" style="grid-column:1/-1">Loading...</div>'
 
     const [{ data: profiles, error: e1 }, { data: meals, error: e2 }] = await Promise.all([
@@ -145,7 +147,7 @@
     ])
 
     if (e1 || e2) {
-      document.getElementById('tbody').innerHTML = '<tr><td colspan="5" style="color:#ef4444;padding:20px;text-align:center">Error loading data</td></tr>'
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="6" style="color:#ef4444;padding:20px;text-align:center">Error loading data</td></tr>'
       return
     }
 
@@ -184,6 +186,7 @@
         <td style="font-weight:500">${p.name}</td>
         <td>${streak > 0 ? streak + ' 🔥' : '<span style="color:#ccc">0</span>'}</td>
         <td><div class="dots">${weekDots}</div></td>
+        <td>${days.length}</td>
         <td>${todayBadge}</td>
         <td>${statusBadge}</td>
       </tr>`
@@ -216,7 +219,7 @@
 
     document.getElementById('tbody').innerHTML = rows.length
       ? rows.join('')
-      : '<tr><td colspan="5" style="color:#bbb;padding:20px;text-align:center">No users yet</td></tr>'
+      : '<tr><td colspan="6" style="color:#bbb;padding:20px;text-align:center">No users yet</td></tr>'
 
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
