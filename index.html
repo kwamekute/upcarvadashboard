@@ -91,7 +91,31 @@
     </div>
   </div>
 
-  <div class="card" style="margin-top:20px">
+
+<div class="card" style="margin-top:20px">
+  <div class="card-header">
+    <span class="card-title">insight queue</span>
+    <span style="font-size:12px;color:#bbb">day 3 / 7 / 14 triggers</span>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Day</th>
+          <th>Trigger</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="queue-tbody">
+        <tr><td colspan="4" class="loading">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
     <div class="card-header">
       <span class="card-title">ghost users</span>
       <span style="font-size:12px;color:#bbb">no login history</span>
@@ -110,7 +134,10 @@
       </table>
     </div>
   </div>
-</div>
+
+</div> 
+
+
 
 <script>
   const { createClient } = supabase
@@ -160,6 +187,53 @@
     return dateStr
   }
 
+//   function getChallengeDay(days) {
+//   const uniqueDays = [...new Set(days)]
+//   return uniqueDays.length
+// }
+// function getChallengeDay(days) {
+//   if (!days.length) return 0
+
+//   const sorted = [...new Set(days)].sort()
+//   const start = new Date(sorted[0])
+
+//   const today = new Date()
+
+//   const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1
+
+//   return diff
+// }
+function getChallengeDay(days) {
+  if (!days || !days.length) return 0
+
+  const unique = [...new Set(days)]
+
+  const sorted = unique
+    .map(d => {
+      const date = new Date(d + "T00:00:00")
+      return isNaN(date) ? null : date
+    })
+    .filter(Boolean)
+    .sort((a, b) => a - b)
+
+  if (!sorted.length) return 0
+
+  const start = sorted[0]
+
+  const now = new Date()
+  const todayMidnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  )
+
+  const diff = Math.floor((todayMidnight - start) / 86400000) + 1
+
+  return diff > 0 ? diff : 0
+}
+
+const CHECKPOINTS = [3, 7, 14]
+
   async function load() {
     document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>'
     document.getElementById('ghost-tbody').innerHTML = '<tr><td colspan="2" class="loading">Loading...</td></tr>'
@@ -179,17 +253,73 @@
     const withProfiles = (profiles || []).filter(p => p.name && p.name.toLowerCase() !== 'efisah')
     
     // Separate active users from ghost users
-    const activeUsers = []
-    const ghostUsers = []
+    // const activeUsers = []
+    // const ghostUsers = []
 
-    withProfiles.forEach(p => {
-      const userMeals = (meals || []).filter(m => m.auth_id === p.auth_id)
-      if (userMeals.length > 0) {
-        activeUsers.push({ profile: p, meals: userMeals })
-      } else {
-        ghostUsers.push(p)
-      }
-    })
+    // withProfiles.forEach(p => {
+    //   const userMeals = (meals || []).filter(m => m.auth_id === p.auth_id)
+    //   if (userMeals.length > 0) {
+    //     activeUsers.push({ profile: p, meals: userMeals })
+    //   } else {
+    //     ghostUsers.push(p)
+    //   }
+    // })
+    const activeUsers = []
+    const dueUsers = []
+
+withProfiles.forEach(p => {
+  const userMeals = (meals || []).filter(m => m.auth_id === p.auth_id)
+  const days = [...new Set(userMeals.map(m => m.log_date))]
+
+  const dayCount = getChallengeDay(days)
+
+  const checkpoint =
+    CHECKPOINTS.includes(dayCount) ? dayCount : null
+
+  const userObj = {
+    profile: p,
+    meals: userMeals,
+    days,
+    dayCount,
+    checkpoint
+  }
+
+  if (userMeals.length > 0) {
+    activeUsers.push(userObj)
+  }
+
+  if (checkpoint) {
+    dueUsers.push(userObj)
+  }
+})
+
+// ================================
+// INSIGHT QUEUE (DAY 3 / 7 / 14)
+// ================================
+const queueRows = dueUsers.map(({ profile: p, dayCount, checkpoint }) => {
+
+  let triggerLabel = ""
+  if (checkpoint === 3) triggerLabel = "Day 3 check-in"
+  if (checkpoint === 7) triggerLabel = "Day 7 milestone"
+  if (checkpoint === 14) triggerLabel = "Day 14 milestone"
+
+  return `
+    <tr>
+      <td style="font-weight:500">${p.name}</td>
+      <td>${dayCount}</td>
+      <td><span class="badge badge-blue">${triggerLabel}</span></td>
+      <td>
+        <button onclick="markDone('${p.auth_id}', ${checkpoint})"
+          style="padding:4px 10px;border:none;border-radius:6px;background:#111;color:#fff;font-size:11px;cursor:pointer">
+          Mark done
+        </button>
+      </td>
+    </tr>
+  `
+}).join('')
+
+document.getElementById('queue-tbody').innerHTML =
+  queueRows || `<tr><td colspan="4" style="color:#bbb;padding:20px;text-align:center">No checkpoints today</td></tr>`
 
     const totalUsers = activeUsers.length
     let activeCount = 0, loggedTodayCount = 0, totalStreakSum = 0
@@ -264,24 +394,31 @@
     document.getElementById('tbody').innerHTML = rows.length
       ? rows.join('')
       : '<tr><td colspan="7" style="color:#bbb;padding:20px;text-align:center">No active users yet</td></tr>'
+      
 
     // Ghost users display
-    const ghostRows = ghostUsers.map(p =>
-      `<tr>
-        <td style="font-weight:500">${p.name}</td>
-        <td><span class="badge badge-gray">never logged</span></td>
-      </tr>`
-    ).join('')
+    // const ghostRows = ghostUsers.map(p =>
+    //   `<tr>
+    //     <td style="font-weight:500">${p.name}</td>
+    //     <td><span class="badge badge-gray">never logged</span></td>
+    //   </tr>`
+    // ).join('')
 
-    document.getElementById('ghost-tbody').innerHTML = ghostRows
-      ? ghostRows
-      : '<tr><td colspan="2" style="color:#bbb;padding:20px;text-align:center">No ghost users</td></tr>'
+    // document.getElementById('ghost-tbody').innerHTML = ghostRows
+    //   ? ghostRows
+    //   : '<tr><td colspan="2" style="color:#bbb;padding:20px;text-align:center">No ghost users</td></tr>'
 
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
-
+  
   load()
+
+window.markDone = function(auth_id, checkpoint) {
+  alert(`Marked ${auth_id} as done for day ${checkpoint}`)
+  load()
+}
+  
 </script>
 
 </body>
