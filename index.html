@@ -59,7 +59,39 @@
 <div class="header">
   <h1>Upcurva Admin</h1>
   <span id="last-updated"></span>
+  <div style="background: #111; border-bottom: 1px solid #222; padding: 10px 20px; display: flex; align-items: center; gap: 16px;">
+  <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #555;">Founded</span>
+  <span style="font-size: 11px; color: #444;">27 Mar 2026</span>
+  <span style="color: #333; font-size: 11px;">·</span>
+  <span id="runtime" style="font-size: 13px; font-weight: 600; color: #fff; letter-spacing: -0.2px;"></span>
+  <span style="color: #333; font-size: 11px;">·</span>
+  <span id="runtime-days" style="font-size: 11px; color: #555;"></span>
 </div>
+
+<script>
+(function() {
+  const start = new Date('2026-03-27')
+  function update() {
+    const now = new Date()
+    let y = now.getFullYear() - start.getFullYear()
+    let m = now.getMonth()  - start.getMonth()
+    let d = now.getDate()   - start.getDate()
+    if (d < 0) { m--; const prev = new Date(now.getFullYear(), now.getMonth(), 0); d += prev.getDate() }
+    if (m < 0) { y--; m += 12 }
+    const totalDays = Math.floor((now - start) / 86400000)
+    const parts = []
+    if (y > 0) parts.push(y + (y === 1 ? ' year' : ' years'))
+    if (m > 0) parts.push(m + (m === 1 ? ' month' : ' months'))
+    parts.push(d + (d === 1 ? ' day' : ' days'))
+    document.getElementById('runtime').textContent = parts.join(' ')
+    document.getElementById('runtime-days').textContent = totalDays + ' days total'
+  }
+  update()
+  setInterval(update, 60000)
+})()
+</script>
+</div>
+
 
 <div class="container">
   <div class="stats-grid" id="stats-area">
